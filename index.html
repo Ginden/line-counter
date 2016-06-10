@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Line counter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        textarea {
+            box-shadow: 1px 1px black;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0">
+<table style="width: 90%;">
+    <tr>
+        <td style="width: 50%">
+            <textarea style="width: 100%; min-height: 25em;"></textarea>
+        </td>
+        <td id="output" style="padding-left: 1em; width: 50%; vertical-align: top">
+
+        </td>
+    </tr>
+</table>
+<script>
+    function change(event) {
+        var values = this.value.split(/(\n|,|;)/).map(function (l) {
+            return l.trim();
+        }).filter(Boolean);
+        var counter = Object.create(null);
+        values.forEach(function (value) {
+            counter[value] |= 0;
+            counter[value]++;
+        });
+        const ret = Array.from(new Set(values)).sort(function (a, b) {
+            return (counter[a] - counter[b]) || ( a > b ? 1 : -1);
+        });
+        function escapeText(txt) {
+            var div = document.createElement('div');
+            div.textContent = txt;
+            return div.innerHTML;
+        }
+
+        document.querySelector('#output').innerHTML = ret.map(function(val) {
+            return escapeText(val)+': '+counter[val];
+        }).join('<br/>\n');
+    }
+
+    change.call(document.querySelector('textarea'));
+    document.querySelector('textarea').addEventListener('input', change);
+</script>
+</body>
+</html>
