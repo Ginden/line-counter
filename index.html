@@ -15,6 +15,9 @@
     </style>
 </head>
 <body style="margin: 0; padding: 0">
+<div style="margin: 0 auto; width: 250px;">
+    <button id="export">export to CSV</button>
+</div>
 <table style="width: 90%;">
     <tr>
         <td style="width: 50%; vertical-align: top">
@@ -26,13 +29,20 @@
     </tr>
 </table>
 <script>
-    function change(event) {
+    function escapeText(txt) {
+        var div = document.createElement('div');
+        div.textContent = txt;
+        return div.innerHTML;
+    }
+    function toLower(str) {
+        return str.toLowerCase();
+    }
+
+    var getData = function getData() {
         var values = this.value.replace(/(,|;)/g, '\n').split(/\n/).map(function (l) {
             return l.trim();
         }).filter(Boolean);
-        function toLower(str) {
-            return str.toLowerCase();
-        }
+
 
         var counter = Object.create(null);
         values.map(toLower).forEach(function (value) {
@@ -42,19 +52,54 @@
         const ret = Array.from(new Set(values.map(toLower))).sort(function (a, b) {
             return (counter[a] - counter[b]) || ( a > b ? 1 : -1);
         });
-        function escapeText(txt) {
-            var div = document.createElement('div');
-            div.textContent = txt;
-            return div.innerHTML;
-        }
 
-        document.querySelector('#output').innerHTML = ret.map(function(val) {
+        return {
+            values: ret,
+            counter: counter
+        };
+    }.bind(document.querySelector('textarea'));
+
+    function change(event) {
+        var data = getData();
+        var counter = data.counter;
+        var values = data.values;
+        document.querySelector('#output').innerHTML = values.map(function(val) {
             return escapeText(val)+': '+counter[toLower(val)];
         }).join('<br/>\n');
     }
 
     change.call(document.querySelector('textarea'));
     document.querySelector('textarea').addEventListener('input', change);
+
+    var saveFile = (function () {
+        var a = document.createElement("a");
+        a.setAttribute('style', 'display: none');
+        return function (data, mimeType, fileName) {
+            var blob = new Blob([data], {type: mimeType || 'application/octet-stream'}),
+                url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            setTimeout(function () {
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function () {
+                    URL.revokeObjectURL(url);
+                }, 1500);
+            }, 500);
+        };
+    }());
+
+
+    document.querySelector('#export').addEventListener('click', function(event) {
+        var data = getData();
+        var counter = data.counter;
+        var values = data.values;
+        var ret = values.map(function(val) {
+            return [JSON.stringify(val), JSON.stringify(String(counter[val]))].join('|');
+        }).join('\r\n');
+        saveFile('sep=|\n'+ret, 'text/csv', Math.floor(Date.now())+'.csv');
+    });
 </script>
 </body>
 </html>
